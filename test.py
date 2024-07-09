@@ -1,10 +1,10 @@
 from dorna2 import Dorna
 from time import sleep
 
-def pickup_sample(robot, claw, velocity):
+def pickup_sample(robot, gripper, velocity):
     robot.jmove(
         rel=0, 
-        j5=claw, 
+        j5=gripper, 
         vel=velocity
         )
     print("\nTrack Command")
@@ -22,7 +22,7 @@ def pickup_position(robot, x, y, z, a, b, c, d, velocity):
         a=a,
         b=b,
         c=c, 
-        #d=d, 
+        d=d, 
         vel=velocity, 
         accel=500,
         jerk=2500
@@ -33,7 +33,7 @@ def pickup_position(robot, x, y, z, a, b, c, d, velocity):
     print("Sys Data")
     print(robot.sys())
 
-def move_to_initial_pose(robot, velocity):
+def move_to_initial_pose(robot, gripper, velocity):
     # Move all joints simultaneously
     response1 = robot.jmove(
         rel=1, 
@@ -42,7 +42,7 @@ def move_to_initial_pose(robot, velocity):
         j2=0.5, 
         j3=0.5, 
         j4=0.5, 
-        j5=0.5, 
+        # j5=0.5, 
         vel=velocity, 
         accel=500,
         jerk=2000
@@ -61,8 +61,8 @@ def move_to_initial_pose(robot, velocity):
         j2=-90, 
         j3=-90, 
         j4=0, 
-        j5=0,
-        j6=100, 
+        j5=gripper,
+        j6=50, 
         vel=velocity,
         accel=500,
         jerk=2500
@@ -80,10 +80,23 @@ def main():
     robot.set_motor(1)
 
     # Initial position values including slide motor (j6)
-    move_to_initial_pose(robot, 100)
-    pickup_position(robot, 0, 372.46, -35, -88, 0, 0, 123, 50)
+    move_to_initial_pose(robot, 0, 100)
+    print("moved to inital position")
+    sleep(1)
+    pickup_position(robot, 0, 350, 25, -112, 0, 0, 52.1, 20)
+    print("moved to initial pickup position")
+    sleep(5)
+    pickup_position(robot, 0, 350, -10, -112, 0, 0, 52.1, 5)
+    print("moved to pickup position")
+    sleep(1)
     pickup_sample(robot, -210, 100)
-    move_to_initial_pose(robot, 100)
+    print("picked up sample")
+    sleep(3)
+    pickup_position(robot, 0, 350, 25, -112, 0, 0, 52.1, 15)
+    print("move to initial pickup position with sample plate")
+    sleep(1)
+    move_to_initial_pose(robot, -210, 50)
+    print("moved to initial position")
 
     robot.close()
 
