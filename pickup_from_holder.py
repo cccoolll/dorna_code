@@ -26,9 +26,29 @@ def pickup(robot, positions, location):
                 d=pos["d"],
                 vel=velocities[numSteps-1]
             )
+            sleep(3)
+
+    robot.jmove(
+        rel = 0, 
+        j5 = -300,
+        vel = 50, 
+    )
+
+    sleep(1)
+
+    robot.lmove(
+        rel=0,
+        z=25,
+        vel=velocities[numSteps-1]
+    )
+
+    move_to_initial_pose(robot, False, 50)
              
 
-def move_to_initial_pose(robot, pos, velo):
+def move_to_initial_pose(robot, clawOpen, velo):
+    j5=0
+    if clawOpen == False:
+        j5=-300
     # For some reason, if the all motors besides the slide rail move first, there will be no operational issues with the slide rail
     robot.jmove(
         rel=1, 
@@ -47,13 +67,12 @@ def move_to_initial_pose(robot, pos, velo):
     robot.jmove(
         timeout=10, 
         rel=0, 
-        j0=pos["j0"], 
-        j1=pos["j1"], 
-        j2=pos["j2"], 
-        j3=pos["j3"], 
-        j4=pos["j4"], 
-        j5=pos["j5"],
-        j6=pos["j6"], 
+        j0=90, 
+        j1=90, 
+        j2=-90, 
+        j3=-90, 
+        j4=0, 
+        j5=j5, 
         vel=velo
     )
     robot_info(robot)
@@ -63,6 +82,7 @@ def get_positions():
     with open("keyPositions.csv", 'r') as file:
         for line in file:
             line = line.split(",")
+            print(line)
 
             position = {}
             if line[1] == "j":
@@ -106,16 +126,12 @@ def main():
 
     
     # Initial position values including slide motor (j6)
-    move_to_initial_pose(robot, positions["Initial"], 100)
+    move_to_initial_pose(robot, True, 100)
     print("moved to inital position")
-    sleep(1)
+    sleep(3)
 
     pickup(robot, positions, "TestPlateHolder")
-    """
-    move_to_initial_pose(robot, positions["Initial"], vel = 50)
-    print("moved to initial position")
-
-    #"""
+    
     robot.close()
     
 
