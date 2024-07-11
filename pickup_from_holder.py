@@ -1,6 +1,11 @@
 from dorna2 import Dorna
 from time import sleep
 
+"""
+TestPlateHolder1,c,0,328,20,-90,0,0,-397.4
+TestPlateHolder2,c,0,328,-37,-90,0,0,-397.4
+"""
+
 def robot_info(robot):
     print("\nTrack Command")
     print(robot.track_cmd())
@@ -26,11 +31,11 @@ def pickup(robot, positions, location):
                 d=pos["d"],
                 vel=velocities[numSteps-1]
             )
-            sleep(3)
+            sleep(1)
 
     robot.jmove(
         rel = 0, 
-        j5 = -300,
+        j5 = -220,
         vel = 50, 
     )
 
@@ -48,7 +53,7 @@ def pickup(robot, positions, location):
 def move_to_initial_pose(robot, clawOpen, velo):
     j5=0
     if clawOpen == False:
-        j5=-300
+        j5=-220
     # For some reason, if the all motors besides the slide rail move first, there will be no operational issues with the slide rail
     robot.jmove(
         rel=1, 
@@ -128,7 +133,7 @@ def main():
     # Initial position values including slide motor (j6)
     move_to_initial_pose(robot, True, 100)
     print("moved to inital position")
-    sleep(3)
+    sleep(1)
 
     pickup(robot, positions, "TestPlateHolder")
     
