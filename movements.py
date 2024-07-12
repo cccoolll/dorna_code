@@ -31,6 +31,19 @@ def move_claw(clawOpen):
 
     return j5, clawOpen
 
+def counter_j0(robot, pos):
+    currentJ0 = robot.get_joint(0)
+    if  currentJ0> 0:
+        b = -90+currentJ0+0.65
+    else:
+        b = 90+currentJ0-0.65
+    robot.jmove(
+        rel=0,
+        b=b,
+        vel=50
+    )
+
+
 def action_from_microscope(robot, pos, clawOpen):
     """
     Description: This function performs the action of picking-up/placing a 
@@ -42,7 +55,76 @@ def action_from_microscope(robot, pos, clawOpen):
     Returns: clawOpen(bool)
     """
 
-    pass
+    print("Claw Open: %s" % clawOpen)
+
+    transport(robot, pos)
+
+    if pos["y"] > 0:
+        deltaY = 140
+    else:
+        deltaY = -140
+
+    robot.jmove(
+        rel=0,
+        x = pos["x"],
+        y = pos["y"]-deltaY,
+        z = pos["z"],
+        a = pos["a"],
+        d = pos["d"],
+        vel = 50
+    )
+    sleep(0.5)
+
+    robot.lmove(
+        rel=0,
+        y = pos["y"],
+        b = pos["b"],
+        vel = 25
+    )
+
+    clawOpen = pickup(robot, pos, clawOpen)
+
+    robot.lmove(
+        rel=0,
+        y = pos["y"]-deltaY,
+        b = pos["b"],
+        vel = 25
+    )
+
+    return clawOpen
+
+def pickup(robot, pos, clawOpen):
+    """
+    Description:
+    Parameters: robot (obj), pos (dict), clawOpen (bool)
+    Return: clawOpen (bool)
+    """
+    # lowers the claw
+    robot.lmove(
+        z = pos["z"]-50,
+        vel = 40
+    )
+
+    # gets the position to which the claw needs to go
+    j5, clawOpen = move_claw(clawOpen)
+    print(j5)
+    print(clawOpen)
+
+    # closes the claw
+    robot.jmove(
+        rel = 0, 
+        j5 = j5,
+        vel = 80, 
+    )
+
+    # lifts up the claw
+    robot.lmove(
+        z = pos["z"]-20, 
+        vel = 60
+    )
+    sleep(0.5)
+
+    return clawOpen
 
 def action_from_holder(robot, pos, clawOpen):
     """
@@ -56,25 +138,17 @@ def action_from_holder(robot, pos, clawOpen):
 
     print("Claw Open: %s" % clawOpen)
 
+    # moves the robot to the position it needs to be on the slide rail
     transport(robot, pos)
 
+    # robots the robotic arm first to avoid any obstables
     robot.jmove(
         rel=0,
         j0=pos["j0"],
         vel = 100
     )
-    """
-    robot.lmove(
-        rel=0,
-        x=pos["x"],
-        y=pos["y"],
-        z=pos["z"],
-        a=pos["a"],
-        b=pos["b"],
-        vel=70
-    )
-    sleep(1)
-    """
+    
+    # moves the rest of the robot arm to the position
     robot.jmove(
             rel=0,
             j0=pos["j0"],
@@ -86,42 +160,9 @@ def action_from_holder(robot, pos, clawOpen):
             vel = 70
         )
     sleep(0.5)
-    # """
-    """
-    if robot.get_alarm():
-        robot.set_alarm(0)
-        robot.jmove(
-            rel=0,
-            j0=pos["j0"],
-            j1=pos["j1"],
-            j2=pos["j2"],
-            j3=pos["j3"],
-            j4=pos["j4"],
-            vel = 70
-            )
-        sleep(1)
-    """
-        
-    robot.lmove(
-        z = pos["z"]-50,
-        vel = 40
-    )
 
-    j5, clawOpen = move_claw(clawOpen)
-    print(j5)
-    print(clawOpen)
-
-    robot.jmove(
-        rel = 0, 
-        j5 = j5,
-        vel = 80, 
-    )
-
-    robot.lmove(
-        z = pos["z"], 
-        vel = 60
-    )
-    sleep(0.5)
+    # picks up the sample with the claw
+    clawOpen = pickup(robot, pos, clawOpen)
     
     return clawOpen
 
@@ -254,6 +295,22 @@ def get_positions():
 
     return positions
 
+def testingHolder(robot, positions, clawOpen):
+    # test actions
+    move_to_initial(robot)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder1"], clawOpen)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder2"], clawOpen)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
+    move_to_initial(robot)
+
+def testingMicroscope(robot, positions, clawOpen):
+    move_to_initial(robot)
+    clawOpen = action_from_microscope(robot, positions["TestPlateHolder4"], clawOpen)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder1"], clawOpen)
+    move_to_initial(robot)
+
+
 if __name__ == "__main__":
     # connects to the robot and engages the motors
     robot = Dorna()
@@ -272,14 +329,9 @@ if __name__ == "__main__":
     positions = get_positions()
     print(positions)
 
-    # test actions
-    move_to_initial(robot)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder1"], clawOpen)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder2"], clawOpen)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
-    move_to_initial(robot)
-    # action_from_microscope(robot, positions["TestMicroscope"]) """
+    # testingHolder(robot, positions, clawOpen)
+    testingMicroscope(robot, positions, clawOpen)
+    
 
     # finishes the sequence
     robot.close()
