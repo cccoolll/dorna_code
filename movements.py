@@ -5,10 +5,11 @@ def robot_info(robot, funcname):
     """
     Description: This function displays the commands sent to the robot and
     information stored about the robot
-    Parameters: robot (obj)
+    Parameters: robot (obj), funcname (str)
     Returns: None
     """
     
+    # displays the data in the command given to the robot and the function it's in
     print("\nTrack Command in %s" % funcname)
     print(robot.track_cmd())
 
@@ -17,9 +18,10 @@ def move_claw(clawOpen):
     Description: This function determines whether or not the claw is open.
     If the claw is open, it closes it. If the claw is closed, it opens it. 
     Parameters: clawOpen (bool)
-    Returns: clawOpen (bool)
+    Returns: j5 (float) clawOpen (bool)
     """
 
+    # if the claw is open, it sets the claw to close and vise versa
     if clawOpen:
         j5 = -375
         clawOpen = False
@@ -29,12 +31,22 @@ def move_claw(clawOpen):
 
     return j5, clawOpen
 
-def counter_j0(robot, pos):
+def counter_j0(robot):
+    """
+    Description: This function is to rotate the claw to offset the rotation 
+    by j0 for times when it is not perfectly 90. 
+    Parameters: robot (obj)
+    Returns: None
+    """
+
+    # current position of the j0 joint
     currentJ0 = robot.get_joint(0)
     if  currentJ0> 0:
         b = -90+currentJ0+0.65
     else:
         b = 90+currentJ0-0.65
+    
+    # moves the claw
     robot.jmove(
         rel=0,
         b=b,
@@ -52,6 +64,7 @@ def pickup(robot, pos, clawOpen, microscope):
         z = pos["z"]-57,
         vel = 50
     )
+    # displays robot information
     robot_info(robot, "pickup")
 
     # gets the position to which the claw needs to go
@@ -65,6 +78,7 @@ def pickup(robot, pos, clawOpen, microscope):
         j5 = j5,
         vel = 80
     )
+    # displays robot information
     robot_info(robot, "pickup close claw")
 
     # lifts up the claw
@@ -78,6 +92,7 @@ def pickup(robot, pos, clawOpen, microscope):
         z = pos["z"], 
         vel = 50
     )
+    # displays robot information
     robot_info(robot, "pickup lifts claw")
 
     return clawOpen
@@ -102,6 +117,7 @@ def transport(robot, pos):
         j4=0, 
         vel=200
     )
+    # displays robot information
     robot_info(robot, "transport")
 
     # moves the sliding rail to the position given
@@ -112,6 +128,7 @@ def transport(robot, pos):
         accel=500,
         jerk=2000
     )
+    # displays robot information
     robot_info(robot, "transport")
 
 def action_from_microscope(robot, pos, clawOpen):
@@ -125,10 +142,13 @@ def action_from_microscope(robot, pos, clawOpen):
     Returns: clawOpen(bool)
     """
 
+    # this is to lower the claw compared to initial holder position as to not hit the light
     microOffset = -33
 
+    # displays whether or not the claw is open for debugging purposes
     print("Claw Open: %s" % clawOpen)
 
+    # moves the robot to the position it needs to be on the slide rail
     transport(robot, pos)
 
     # robots the robotic arm first to avoid any obstables
@@ -137,14 +157,16 @@ def action_from_microscope(robot, pos, clawOpen):
         j0=pos["j0"],
         vel = 200
     )
+    # displays robot information
     robot_info(robot, "action_from_microscope")
 
-
+    # determines whether to move forward or backward based on which side of the table it's on
     if pos["y"] > 0:
         deltaY = 90
     else:
         deltaY = -90
 
+    # moves the rest of the robotic arm to the initial microscope position
     robot.jmove(
         rel=0,
         x = pos["x"],
@@ -154,18 +176,23 @@ def action_from_microscope(robot, pos, clawOpen):
         d = pos["d"],
         vel = 100
     )
+    # displays robot information
     robot_info(robot, "action_from_microscope")
 
+    # moves the robotic arm into the microscope to be able to pick-up/place
     robot.lmove(
         rel=0,
         y = pos["y"],
         b = pos["b"],
         vel = 50
     )
+    # displays robot information
     robot_info(robot, "action_from_microscope")
 
+    # pickups/places the sample
     clawOpen = pickup(robot, pos, clawOpen, True)
 
+    # moves the robotic arm out of the microscope
     robot.lmove(
         rel=0,
         y = pos["y"]-deltaY,
@@ -173,8 +200,10 @@ def action_from_microscope(robot, pos, clawOpen):
         b = pos["b"],
         vel = 50
     )
+    # displays robot information
     robot_info(robot, "action_from_microscope")
 
+    # moves the robotic arm back to the initial position
     move_to_initial(robot)
 
     return clawOpen
@@ -188,7 +217,7 @@ def action_from_holder(robot, pos, clawOpen):
     Parameters: robot (obj), pos (dict), clawOpen(bool)
     Returns: clawOpen (bool)
     """
-
+    # displays whether or not the claw is open for debugging purposes
     print("Claw Open: %s" % clawOpen)
 
     # moves the robot to the position it needs to be on the slide rail
@@ -200,9 +229,10 @@ def action_from_holder(robot, pos, clawOpen):
         j0=pos["j0"],
         vel = 200
     )
+    # displays robot information
     robot_info(robot, "action_from_holder")
     
-    # moves the rest of the robot arm to the position
+    # moves the rest of the robot arm to the initial holder position
     robot.jmove(
             rel=0,
             j0=pos["j0"],
@@ -213,13 +243,13 @@ def action_from_holder(robot, pos, clawOpen):
             j6=pos["j6"],
             vel = 200
         )
+    # displays robot information
     robot_info(robot, "action_from_holder")
 
     # picks up the sample with the claw
     clawOpen = pickup(robot, pos, clawOpen, False)
 
-    # moves the robotic arm to the initial position
-    # moves the robotic arm to the initial starting position
+    # moves the robotic arm back to the initial position
     move_to_initial(robot)
 
     return clawOpen
@@ -334,6 +364,7 @@ def testingHolder(robot, positions, clawOpen):
     return clawOpen
 
 def testingMicroscope(robot, positions, clawOpen):
+    # test actions
     move_to_initial(robot)
     clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
     clawOpen = action_from_microscope(robot, positions["Microscope1"], clawOpen)
