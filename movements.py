@@ -1,7 +1,7 @@
 from dorna2 import Dorna
 from time import sleep
 
-def robot_info(robot):
+def robot_info(robot, funcname):
     """
     Description: This function displays the commands sent to the robot and
     information stored about the robot
@@ -9,10 +9,8 @@ def robot_info(robot):
     Returns: None
     """
     
-    print("\nTrack Command in %s")
+    print("\nTrack Command in %s" % funcname)
     print(robot.track_cmd())
-    print("Sys Data")
-    print(robot.sys())
 
 def move_claw(clawOpen):
     """
@@ -23,7 +21,7 @@ def move_claw(clawOpen):
     """
 
     if clawOpen:
-        j5 = -240
+        j5 = -375
         clawOpen = False
     else:
         j5 = 0
@@ -40,9 +38,81 @@ def counter_j0(robot, pos):
     robot.jmove(
         rel=0,
         b=b,
-        vel=50
+        vel=200
     )
 
+def pickup(robot, pos, clawOpen, microscope):
+    """
+    Description:
+    Parameters: robot (obj), pos (dict), clawOpen (bool)
+    Return: clawOpen (bool)
+    """
+    # lowers the claw
+    robot.lmove(
+        z = pos["z"]-57,
+        vel = 50
+    )
+    robot_info(robot, "pickup")
+
+    # gets the position to which the claw needs to go
+    j5, clawOpen = move_claw(clawOpen)
+    print(j5)
+    print(clawOpen)
+
+    # closes the claw
+    robot.jmove(
+        rel=0,
+        j5 = j5,
+        vel = 80
+    )
+    robot_info(robot, "pickup close claw")
+
+    # lifts up the claw
+    if microscope:
+        robot.lmove(
+            z=pos["z"]-57+24,
+            vel = 50
+        )
+    else:
+        robot.lmove(
+        z = pos["z"], 
+        vel = 50
+    )
+    robot_info(robot, "pickup lifts claw")
+
+    return clawOpen
+
+def transport(robot, pos):
+    """
+    Description: This function moves the robotic arm into the transportation
+    position and then moves the robotic arm along the sliding rail to where it 
+    needs to go. 
+    Parameters: robot (obj), pos (dict)
+    Returns: None
+    """
+
+    # rotates the robot to the transportation position
+    robot.jmove(
+        timeout=10, 
+        rel=0, 
+        j0=0,
+        j1=100, 
+        j2=-100, 
+        j3=-88, 
+        j4=0, 
+        vel=200
+    )
+    robot_info(robot, "transport")
+
+    # moves the sliding rail to the position given
+    robot.jmove(
+        rel=0,
+        j6=pos["j6"],
+        vel=120,
+        accel=500,
+        jerk=2000
+    )
+    robot_info(robot, "transport")
 
 def action_from_microscope(robot, pos, clawOpen):
     """
@@ -55,74 +125,57 @@ def action_from_microscope(robot, pos, clawOpen):
     Returns: clawOpen(bool)
     """
 
+    microOffset = -33
+
     print("Claw Open: %s" % clawOpen)
 
     transport(robot, pos)
 
+    # robots the robotic arm first to avoid any obstables
+    robot.jmove(
+        rel=0,
+        j0=pos["j0"],
+        vel = 200
+    )
+    robot_info(robot, "action_from_microscope")
+
+
     if pos["y"] > 0:
-        deltaY = 140
+        deltaY = 90
     else:
-        deltaY = -140
+        deltaY = -90
 
     robot.jmove(
         rel=0,
         x = pos["x"],
         y = pos["y"]-deltaY,
-        z = pos["z"],
+        z = pos["z"]+microOffset,
         a = pos["a"],
         d = pos["d"],
-        vel = 50
+        vel = 100
     )
-    sleep(0.5)
+    robot_info(robot, "action_from_microscope")
 
     robot.lmove(
         rel=0,
         y = pos["y"],
         b = pos["b"],
-        vel = 25
+        vel = 50
     )
+    robot_info(robot, "action_from_microscope")
 
-    clawOpen = pickup(robot, pos, clawOpen)
+    clawOpen = pickup(robot, pos, clawOpen, True)
 
     robot.lmove(
         rel=0,
         y = pos["y"]-deltaY,
+        z = pos["z"]+microOffset,
         b = pos["b"],
-        vel = 25
+        vel = 50
     )
+    robot_info(robot, "action_from_microscope")
 
-    return clawOpen
-
-def pickup(robot, pos, clawOpen):
-    """
-    Description:
-    Parameters: robot (obj), pos (dict), clawOpen (bool)
-    Return: clawOpen (bool)
-    """
-    # lowers the claw
-    robot.lmove(
-        z = pos["z"]-50,
-        vel = 40
-    )
-
-    # gets the position to which the claw needs to go
-    j5, clawOpen = move_claw(clawOpen)
-    print(j5)
-    print(clawOpen)
-
-    # closes the claw
-    robot.jmove(
-        rel = 0, 
-        j5 = j5,
-        vel = 80, 
-    )
-
-    # lifts up the claw
-    robot.lmove(
-        z = pos["z"]-20, 
-        vel = 60
-    )
-    sleep(0.5)
+    move_to_initial(robot)
 
     return clawOpen
 
@@ -141,12 +194,13 @@ def action_from_holder(robot, pos, clawOpen):
     # moves the robot to the position it needs to be on the slide rail
     transport(robot, pos)
 
-    # robots the robotic arm first to avoid any obstables
+    # rotates the robotic arm first to avoid any obstables
     robot.jmove(
         rel=0,
         j0=pos["j0"],
-        vel = 100
+        vel = 200
     )
+    robot_info(robot, "action_from_holder")
     
     # moves the rest of the robot arm to the position
     robot.jmove(
@@ -157,44 +211,18 @@ def action_from_holder(robot, pos, clawOpen):
             j3=pos["j3"],
             j4=pos["j4"],
             j6=pos["j6"],
-            vel = 70
+            vel = 200
         )
-    sleep(0.5)
+    robot_info(robot, "action_from_holder")
 
     # picks up the sample with the claw
-    clawOpen = pickup(robot, pos, clawOpen)
-    
+    clawOpen = pickup(robot, pos, clawOpen, False)
+
+    # moves the robotic arm to the initial position
+    # moves the robotic arm to the initial starting position
+    move_to_initial(robot)
+
     return clawOpen
-
-def transport(robot, pos):
-    """
-    Description: This function moves the robotic arm into the transportation
-    position and then moves the robotic arm along the sliding rail to where it 
-    needs to go. 
-    Parameters: robot (obj), pos (dict)
-    Returns: None
-    """
-
-    # rotates the robot to the transportation position
-    robot.jmove(
-        timeout=10, 
-        rel=0, 
-        j0=0,
-        j1=90, 
-        j2=-90, 
-        j3=-90, 
-        j4=0, 
-        vel=100
-    )
-
-    # moves the sliding rail to the position given
-    robot.jmove(
-        rel=0,
-        j6=pos["j6"],
-        vel=120,
-        accel=500,
-        jerk=2000
-    )
 
 def move_to_initial(robot):
     """
@@ -211,25 +239,25 @@ def move_to_initial(robot):
         j2=0.5, 
         j3=0.5, 
         j4=0.5, 
-        vel=100, 
+        vel=10, 
         accel=500,
         jerk=2000
     )
     # displays robot information
-    robot_info(robot)
+    robot_info(robot, "move_to_initial")
 
     # moves the robotic arm to the initial starting position
     robot.jmove(
         timeout=10, 
         rel=0, 
-        j1=90, 
-        j2=-90, 
-        j3=-90, 
+        j1=100, 
+        j2=-100, 
+        j3=-88, 
         j4=0, 
-        vel=100
+        vel=200
     )
     # displays robot information
-    robot_info(robot)
+    robot_info(robot, "move_to_initial")
 
 def get_positions():
     """
@@ -302,13 +330,15 @@ def testingHolder(robot, positions, clawOpen):
     clawOpen = action_from_holder(robot, positions["TestPlateHolder1"], clawOpen)
     clawOpen = action_from_holder(robot, positions["TestPlateHolder2"], clawOpen)
     clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
-    move_to_initial(robot)
+
+    return clawOpen
 
 def testingMicroscope(robot, positions, clawOpen):
     move_to_initial(robot)
-    clawOpen = action_from_microscope(robot, positions["TestPlateHolder4"], clawOpen)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder1"], clawOpen)
-    move_to_initial(robot)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
+    clawOpen = action_from_microscope(robot, positions["Microscope1"], clawOpen)
+
+    return clawOpen
 
 
 if __name__ == "__main__":
@@ -330,6 +360,8 @@ if __name__ == "__main__":
     print(positions)
 
     # testingHolder(robot, positions, clawOpen)
+    # for i in range(4):
+    #     clawOpen = testingMicroscope(robot, positions, clawOpen)
     testingMicroscope(robot, positions, clawOpen)
     
 
