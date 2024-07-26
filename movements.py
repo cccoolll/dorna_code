@@ -13,6 +13,14 @@ def robot_info(robot, funcname):
     print("\nTrack Command in %s" % funcname)
     print(robot.track_cmd())
 
+def calculateDeltaD():
+    # distance between microscopes in mm
+    dist = 800
+    # converst the distance between microscopes to the change in d
+    deltaD = dist * (256.76-254.2)/7
+
+    return deltaD
+
 def move_claw(clawOpen):
     """
     Description: This function determines whether or not the claw is open.
@@ -230,6 +238,7 @@ def action_from_holder(robot, pos, clawOpen):
         j0=pos["j0"],
         vel = 250
     )
+
     # displays robot information
     robot_info(robot, "action_from_holder")
     
@@ -289,6 +298,40 @@ def move_to_initial(robot):
     )
     # displays robot information
     robot_info(robot, "move_to_initial")
+
+def get_microscope_position(microLeft1Pos, name):
+    if "Left" in name:
+        y = microLeft1Pos["y"]
+        j0 = microLeft1Pos["j0"]
+    elif "Right" in name:
+        y = abs(microLeft1Pos["y"])
+        j0 = abs(microLeft1Pos["j0"])
+    else:
+        print("Wrong Name Input")
+        raise ValueError
+    
+    deltaD = calculateDeltaD()
+    try:
+        num = int(name[-1])
+        d = microLeft1Pos["d"] + deltaD*(num-1)
+    except ValueError:
+        print("Wrong Name Input")
+
+    microscopePos = {}
+    microscopePos["x"] = microLeft1Pos["x"]
+    microscopePos["y"] = y
+    microscopePos["z"] = microLeft1Pos["z"]
+    microscopePos["a"] = microLeft1Pos["a"]
+    microscopePos["b"] = microLeft1Pos["b"]
+    microscopePos["d"] = d
+    microscopePos["j0"] = j0
+    microscopePos["j1"] = microLeft1Pos["j1"]
+    microscopePos["j2"] = microLeft1Pos["j2"]
+    microscopePos["j3"] = microLeft1Pos["j3"]
+    microscopePos["j4"] = microLeft1Pos["j4"]
+    microscopePos["j6"] = d
+
+    return microscopePos
 
 def get_positions():
     """
@@ -367,11 +410,61 @@ def testingHolder(robot, positions, clawOpen):
 def testingMicroscope(robot, positions, clawOpen):
     # test actions
     move_to_initial(robot)
-    clawOpen = action_from_microscope(robot, positions["Microscope1"], clawOpen)
+    clawOpen = action_from_microscope(robot, positions["MicroscopeLeft1"], clawOpen)
     clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
 
     return clawOpen
 
+def testing_get_microscope_position(robot, positions, clawOpen):
+    move_to_initial(robot)
+    clawOpen = action_from_microscope(robot, positions["MicroscopeLeft1"], clawOpen)
+    pos1 = get_microscope_position(positions["MicroscopeLeft1"], "MicroscopeLeft2")
+    pos2 = get_microscope_position(positions["MicroscopeLeft1"], "MicroscopeRight3")
+    pos3 = get_microscope_position(positions["MicroscopeLeft1"], "MicroscopeRight4")
+    print(pos1)
+    print(pos2)
+    print(pos3)
+
+    print("moving to pos1")
+    robot.jmove(
+        rel=0,
+        j0 = pos1["j0"],
+        j1 = pos1["j1"],
+        j2 = pos1["j2"],
+        j3 = pos1["j3"],
+        j4 = pos1["j4"],
+        j6 = pos1["j6"],
+        vel = 50
+    )
+    robot_info(robot, "testing_get_microscope_position")
+    sleep(5)
+
+    robot.jmove(
+        rel=0,
+        j0 = pos2["j0"],
+        j1 = pos2["j1"],
+        j2 = pos2["j2"],
+        j3 = pos2["j3"],
+        j4 = pos2["j4"],
+        j6 = pos2["j6"],
+        vel = 50
+    )
+    robot_info(robot, "testing_get_microscope_position")
+    sleep(5)
+
+    robot.jmove(
+        rel=0,
+        timeout = 1,
+        j0 = pos3["j0"],
+        j1 = pos3["j1"],
+        j2 = pos3["j2"],
+        j3 = pos3["j3"],
+        j4 = pos3["j4"],
+        j6 = pos3["j6"],
+        vel = 50
+    )
+    robot_info(robot, "testing_get_microscope_position")
+    sleep(5)
 
 if __name__ == "__main__":
     # connects to the robot and engages the motors
@@ -393,7 +486,8 @@ if __name__ == "__main__":
 
     # testingHolder(robot, positions, clawOpen)
     # testingMicroscope(robot, positions, clawOpen)
-
+    testing_get_microscope_position(robot, positions, clawOpen)
+    """
     move_to_initial(robot)
     
     clawOpen = action_from_holder(robot, positions["TestPlateHolder1"], clawOpen)
@@ -418,6 +512,6 @@ if __name__ == "__main__":
             accel = 1000,
             jerk=2500
         )
-
+    """
     # finishes the sequence
     robot.close()
