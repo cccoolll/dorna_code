@@ -61,7 +61,7 @@ def pickup(robot, pos, clawOpen, microscope):
     """
     # lowers the claw
     robot.lmove(
-        z = pos["z"]-57,
+        z = pos["z"]-59,
         vel = 50
     )
     # displays robot information
@@ -140,6 +140,7 @@ def action_from_microscope(robot, pos, clawOpen):
     lifts back up, moves away from the microscope, and then lifts back up. 
     Parameters: robot (obj), pos (dict), clawOpen(bool)
     Returns: clawOpen(bool)
+    -1021
     """
 
     # this is to lower the claw compared to initial holder position as to not hit the light
@@ -227,7 +228,7 @@ def action_from_holder(robot, pos, clawOpen):
     robot.jmove(
         rel=0,
         j0=pos["j0"],
-        vel = 200
+        vel = 250
     )
     # displays robot information
     robot_info(robot, "action_from_holder")
@@ -269,7 +270,7 @@ def move_to_initial(robot):
         j2=0.5, 
         j3=0.5, 
         j4=0.5, 
-        vel=10, 
+        vel=100, 
         accel=500,
         jerk=2000
     )
@@ -284,7 +285,7 @@ def move_to_initial(robot):
         j2=-100, 
         j3=-88, 
         j4=0, 
-        vel=200
+        vel=250
     )
     # displays robot information
     robot_info(robot, "move_to_initial")
@@ -356,18 +357,18 @@ def get_positions():
 def testingHolder(robot, positions, clawOpen):
     # test actions
     move_to_initial(robot)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder1"], clawOpen)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder2"], clawOpen)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
+    for i in range(4):
+        clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
+        clawOpen = action_from_holder(robot, positions["TestPlateHolder1"], clawOpen)
+        clawOpen = action_from_holder(robot, positions["TestPlateHolder4"], clawOpen)
 
     return clawOpen
 
 def testingMicroscope(robot, positions, clawOpen):
     # test actions
     move_to_initial(robot)
-    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
     clawOpen = action_from_microscope(robot, positions["Microscope1"], clawOpen)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
 
     return clawOpen
 
@@ -391,10 +392,32 @@ if __name__ == "__main__":
     print(positions)
 
     # testingHolder(robot, positions, clawOpen)
-    # for i in range(4):
-    #     clawOpen = testingMicroscope(robot, positions, clawOpen)
-    testingMicroscope(robot, positions, clawOpen)
+    # testingMicroscope(robot, positions, clawOpen)
+
+    move_to_initial(robot)
     
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder1"], clawOpen)
+    clawOpen = action_from_microscope(robot, positions["Microscope1"], clawOpen)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder2"], clawOpen)
+    clawOpen = action_from_microscope(robot, positions["Microscope1"], clawOpen)
+    clawOpen = action_from_holder(robot, positions["TestPlateHolder3"], clawOpen)
+    
+    for i in range(2):
+        robot.jmove(
+            rel=1,
+            j3 = 5,
+            vel = 250,
+            accel = 1000,
+            jerk=2500
+        )
+        robot.jmove(
+            rel=1,
+            j3 = -5,
+            vel = 250,
+            accel = 1000,
+            jerk=2500
+        )
 
     # finishes the sequence
     robot.close()
