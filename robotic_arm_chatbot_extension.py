@@ -6,6 +6,7 @@ import json
 from imjoy_rpc import api
 from imjoy_rpc.hypha import connect_to_server, login
 import argparse
+from  controller_calibration import RoboticArmController
 
 class GrabFromHolderInput(BaseModel):
     """
@@ -42,6 +43,12 @@ class PlacesAtMicroscopeInput(BaseModel):
     then continues to lift back up. 
     """
     position: str = Field(..., description="position to travel to")
+
+class RoboticArmCalibration(BaseModel):
+    """
+    This function serves to use an gaming controller to calibrate the robot. 
+    Each joystick and button input moves the robot. 
+    """
 
 class RoboticArm:
     def __init__(self):
@@ -232,6 +239,7 @@ class RoboticArm:
         Parameters: self (obj), config (object), context (None)
         Return: None
         """
+        self.robot.connect("192.168.2.20")
         # gets the position of the holder
         position = config.position
         pos = self.positions[position]
@@ -268,6 +276,8 @@ class RoboticArm:
         # moves to the initial position
         await self.move_to_initial()
 
+        self.robot.close()
+
     async def place_at_holder(self, config: PlacesAtHolderInput, context=None): 
         """
         Description: This function performs the action of placing an object onto the plate 
@@ -276,6 +286,7 @@ class RoboticArm:
         Parameters: self (obj), config (object), context (None)
         Return: None
         """
+        self.robot.connect("192.168.2.20")
         # gets the position of the holder
         position = config.position
         pos = self.positions[position]
@@ -312,6 +323,8 @@ class RoboticArm:
         # moves to the initial position
         await self.move_to_initial()
 
+        self.robot.close()
+
     async def grab_from_microscope(self, config: GrabFromMicroscopeInput, context=None):
         """
         Description: This function performs the action of picking-up a 
@@ -322,6 +335,7 @@ class RoboticArm:
         Parameters: self (obj), config (object), context (None)
         Return: None
         """
+        self.robot.connect("192.168.2.20")
         # gets the position of the holder
         position = config.position
         # this if is for testing purposes
@@ -391,6 +405,8 @@ class RoboticArm:
         # moves to the initial position
         await self.move_to_initial()
 
+        self.robot.close()
+
     async def place_at_microscope(self, config: PlacesAtMicroscopeInput, context=None):
         """
         Description: This function performs the action of placing a 
@@ -401,6 +417,7 @@ class RoboticArm:
         Parameters: self (obj), config (object), context (None)
         Return: None
         """
+        self.robot.connect("192.168.2.20")
         # gets the position of the holder
         position = config.position
         # this if is for testing purposes
@@ -470,12 +487,26 @@ class RoboticArm:
         # moves to the initial position
         await self.move_to_initial()
 
+        self.robot.close()
+
+    async def calibrate(self):
+        """
+        Description: This function serves to use an gaming controller to calibrate 
+        the robot. Each joystick and button input moves the robot. 
+        Parameters: self (obj)
+        Return Val: None
+        """
+        controller = RoboticArmController(self.robot, self.positions)
+        await controller.calibrate_arm()
+
 def get_schema():
+    
         return {
             "grab_from_holder": GrabFromHolderInput.schema(),
             "place_at_holder": GrabFromHolderInput.schema(),
             "grab_from_microscope": GrabFromHolderInput.schema(),
             "place_at_microscope": GrabFromHolderInput.schema(),
+            "calibrate": RoboticArmCalibration.schema(),
         }
 
 
@@ -500,6 +531,7 @@ async def setup():
             "place_at_holder": robot.place_at_holder,
             "grab_from_microscope": robot.grab_from_microscope,
             "place_at_microscope": robot.place_at_microscope,
+            "calibrate": robot.calibrate,
         }
     }
 
